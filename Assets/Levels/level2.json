@@ -1,0 +1,11 @@
+{
+    "gridSize": 3,
+    "points": [
+        {"x": 0, "y": 0, "colorName": "red"},
+        {"x": 2, "y": 1, "colorName": "red"},
+        {"x": 1, "y": 0, "colorName": "blue"},
+        {"x": 1, "y": 2, "colorName": "blue"},
+        {"x": 2, "y": 0, "colorName": "green"},
+        {"x": 0, "y": 2, "colorName": "green"}
+    ]
+}
