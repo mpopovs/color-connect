@@ -38,11 +38,19 @@ public class LevelManager : MonoBehaviour
             levelGenerator = gameObject.AddComponent<LevelGenerator>();
         }
 
+        if (PlayerPrefs.HasKey("SavedLevel"))
+            currentLevel = PlayerPrefs.GetInt("SavedLevel");
+        else
+            currentLevel = 0;
+
         if (nextLevelButton != null)
         {
             nextLevelButton.gameObject.SetActive(false);
             nextLevelButton.onClick.AddListener(OnNextLevelClick);
         }
+
+        if (gameBoard != null)
+            gameBoard.onLevelComplete += OnLevelComplete;
 
         LoadLevel(currentLevel);
         UpdateLevelText();
@@ -55,6 +63,13 @@ public class LevelManager : MonoBehaviour
         LoadLevel(currentLevel);
         nextLevelButton.gameObject.SetActive(false);
         UpdateLevelText();
+    }
+
+    private void OnLevelComplete()
+    {
+        Debug.Log("Level completed! Showing next level button.");
+        if (nextLevelButton != null)
+            nextLevelButton.gameObject.SetActive(true);
     }
 
     private void UpdateLevelText()
@@ -100,5 +115,11 @@ public class LevelManager : MonoBehaviour
             default: color = Color.white; break;
         }
         return color;
+    }
+
+    private void OnApplicationQuit()
+    {
+        PlayerPrefs.SetInt("SavedLevel", currentLevel);
+        PlayerPrefs.Save();
     }
 }

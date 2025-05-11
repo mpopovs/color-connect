@@ -1,5 +1,6 @@
 using UnityEngine;
 using System.Collections.Generic;
+using System.Linq;
 
 public class LevelGenerator : MonoBehaviour
 {
@@ -32,111 +33,45 @@ public class LevelGenerator : MonoBehaviour
         int gridSize = Mathf.Min(MinGridSize + (levelNumber / 5), MaxGridSize);
         int numColorPairs = Mathf.Min(MinColorPairs + (levelNumber / 3), MaxColorPairs);
 
-        if (levelNumber == 11)
-        {
-            Debug.LogWarning($"Level 11 debug:");
-            Debug.LogWarning($"- Grid size calculation: {MinGridSize} + ({levelNumber}/5) = {gridSize}");
-            Debug.LogWarning($"- Color pairs calculation: {MinColorPairs} + ({levelNumber}/3) = {numColorPairs}");
-            Debug.LogWarning($"- Available colors: {availableColors.Length}");
-        }
+        // Make sure we don't try to create more color pairs than available colors
+        numColorPairs = Mathf.Min(numColorPairs, availableColors.Length);
 
         Debug.Log($"Level {levelNumber}: Grid size {gridSize}x{gridSize}, Color pairs: {numColorPairs}");
-        return GenerateRandomLevel(gridSize, numColorPairs, levelNumber);
+        return GenerateRandomLevel(gridSize, numColorPairs);
     }
 
-    private LevelData GenerateRandomLevel(int gridSize, int numColorPairs, int levelNumber)
+    private LevelData GenerateRandomLevel(int gridSize, int numColorPairs)
     {
         List<PointData> points = new List<PointData>();
-        bool[,] occupiedPositions = new bool[gridSize, gridSize];
+        bool[,] occupied = new bool[gridSize, gridSize];
 
-        List<ColorType> shuffledColors = new List<ColorType>(availableColors);
-        Shuffle(shuffledColors);
+        // Shuffle available colors and pick the first numColorPairs
+        List<ColorType> colorPool = availableColors.OrderBy(x => Random.value).ToList();
+        colorPool = colorPool.Take(numColorPairs).ToList();
 
-        if (levelNumber == 11)
+        foreach (var color in colorPool)
         {
-            Debug.LogWarning("Level 11 - Shuffled colors: " + string.Join(", ", shuffledColors));
+            // First point
+            int x1, y1;
+            do
+            {
+                x1 = Random.Range(0, gridSize);
+                y1 = Random.Range(0, gridSize);
+            } while (occupied[x1, y1]);
+            occupied[x1, y1] = true;
+            points.Add(new PointData { x = x1, y = y1, colorName = color.ToString() });
+
+            // Second point
+            int x2, y2;
+            do
+            {
+                x2 = Random.Range(0, gridSize);
+                y2 = Random.Range(0, gridSize);
+            } while (occupied[x2, y2] || (x1 == x2 && y1 == y2));
+            occupied[x2, y2] = true;
+            points.Add(new PointData { x = x2, y = y2, colorName = color.ToString() });
         }
 
-        int pairsCreated = 0;
-        for (int i = 0; i < numColorPairs; i++)
-        {
-            if (i >= shuffledColors.Count)
-            {
-                Debug.LogError($"Not enough colors at index {i}");
-                break;
-            }
-
-            ColorType color = shuffledColors[i];
-
-            if (levelNumber == 11)
-            {
-                Debug.LogWarning($"Level 11 - Creating pair {i+1} with color: {color}");
-            }
-
-            Vector2Int? firstPos = FindValidPosition(gridSize, occupiedPositions);
-            if (!firstPos.HasValue)
-            {
-                Debug.LogError("Failed to place first point - no valid positions available");
-                break;
-            }
-
-            occupiedPositions[firstPos.Value.x, firstPos.Value.y] = true;
-            points.Add(new PointData { x = firstPos.Value.x, y = firstPos.Value.y, colorName = color.ToString() });
-
-            if (levelNumber == 11)
-            {
-                Debug.LogWarning($"Level 11 - Added point 1 at ({firstPos.Value.x},{firstPos.Value.y}) with color {color}");
-            }
-
-            Vector2Int? secondPos = FindValidPairPosition(gridSize, occupiedPositions, firstPos.Value);
-            if (!secondPos.HasValue)
-            {
-                Debug.LogError("Failed to place second point - no valid positions with path");
-                occupiedPositions[firstPos.Value.x, firstPos.Value.y] = false;
-                points.RemoveAt(points.Count - 1);
-                continue;
-            }
-
-            // Ensure the second position is not the same as the first
-            if (secondPos.Value.x == firstPos.Value.x && secondPos.Value.y == firstPos.Value.y)
-            {
-                Debug.LogError("Second point is at the same position as the first point");
-                occupiedPositions[firstPos.Value.x, firstPos.Value.y] = false;
-                points.RemoveAt(points.Count - 1);
-                continue;
-            }
-
-            occupiedPositions[secondPos.Value.x, secondPos.Value.y] = true;
-            points.Add(new PointData { x = secondPos.Value.x, y = secondPos.Value.y, colorName = color.ToString() });
-            pairsCreated++;
-
-            if (levelNumber == 11)
-            {
-                Debug.LogWarning($"Level 11 - Added point 2 at ({secondPos.Value.x},{secondPos.Value.y}) with color {color}");
-                Debug.LogWarning($"Level 11 - Pair {pairsCreated} created successfully");
-            }
-        }
-
-        if (levelNumber == 11)
-        {
-            Debug.LogWarning($"Level 11 - Created {pairsCreated} pairs out of {numColorPairs} requested");
-            Debug.LogWarning($"Level 11 - Total points: {points.Count}");
-
-            Dictionary<string, int> colorCounts = new Dictionary<string, int>();
-            foreach (var point in points)
-            {
-                if (!colorCounts.ContainsKey(point.colorName))
-                    colorCounts[point.colorName] = 0;
-                colorCounts[point.colorName]++;
-            }
-
-            foreach (var pair in colorCounts)
-            {
-                Debug.LogWarning($"Level 11 - Color {pair.Key}: {pair.Value} points");
-            }
-        }
-
-        Debug.Log($"Generated {points.Count} points total ({points.Count/2} pairs)");
         return new LevelData { gridSize = gridSize, points = points.ToArray() };
     }
 

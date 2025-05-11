@@ -3,7 +3,7 @@ using UnityEngine;
 public class ColorPoint : MonoBehaviour
 {
     [SerializeField]
-    private float pointSize = 0.5f; // Default size, adjust as needed
+    private float pointSize = 2.0f; // Increased from 0.5f to 1.0f
     private Color pointColor = Color.white;
     public bool isConnected = false;
     public ColorPoint connectedTo;
